@@ -1,0 +1,20 @@
+-- 创建普通索引
+create index i1 on students(sname);
+
+-- 删除索引
+drop index i1;
+
+-- 创建唯一索引
+create unique index i1 on students(sname);
+
+-- 组合索引
+create index i1 on students(sid,sname);
+
+-- 反向键索引
+create index i1 on students(sname) reverse;
+
+-- 位图索引
+create bitmap index i1  on students(sname);
+
+-- 基于函数的索引
+create index i1 on students(lower(age));

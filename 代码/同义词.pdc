@@ -1,0 +1,35 @@
+-- 将Beloved用户的emp表授权给zh用户
+grant all on emp to zh;
+
+-- 切换zh用户查询emp表
+select * from Beloved.emp;
+
+-- dba用户创建私有同义词
+create synonym zh.emp for Beloved.emp;
+
+-- dba用户创建共有同义词
+create public synonym emp for Beloved.emp;
+
+-- dba用户授权私有同义词权限
+grant create synonym to zh;
+
+-- dba用户授权共有同义词权限
+grant create public synonym to zh;
+
+-- 普通用户创建私有同义词
+create synonym emp for Beloved.emp;
+
+-- 普通用户创建共有同义词
+create public synonym emp for Beloved.emp;
+
+-- dba用户删除私有同义词
+drop synonym zh.emp;
+
+-- dba用户删除共有同义词
+drop public synonym emp;
+
+-- 删除创建私有同义词权限
+revoke create synonym from zh;
+
+-- 删除创建共有同义词权限
+revoke create public synonym from zh;

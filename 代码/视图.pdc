@@ -1,0 +1,69 @@
+-- 查询用户是否具有create view权限
+ Select * from session_privs;  
+ 
+-- 没有权限切换dba用户给用户授权
+conn sys/123456 @XE as sysdba;
+grant create view to zh;
+conn zh/123456 @XE;
+
+ 
+-- 创建简单的的视图
+create or replace view v1(id,name,age) as
+select sid,sname,age from students;
+
+-- 查询视图结构
+desc v1;
+
+-- 对试图进行DML操作
+select * from v1;
+insert into v1 values(5,'aaa',23);
+update v1 set age = 25 where id = 5;
+delete v1 where id = 5;
+
+-- 创建只读视图 使用or replace替换之前的视图
+create or replace view v1(id,name,age) as
+select sid,sname,age from students
+with read only;
+
+-- 创建检查约束视图with check option
+create or replace view v1(id,name,age) as
+select sid,sname,age from students where age = 20
+with check option;
+
+-- 创建连接视图
+create or replace view v1(sid,sname,age,tname) as
+select s.sid,s.sname,s.age,t.tname from students s,teachers t where s.tid = t.tid
+
+-- 连接视图DML操作
+insert into v1 values(4,'aaa',20,'张老师');
+
+-- 创建复杂视图
+create or replace view v1(ages) as
+select sum(age) from students;
+
+-- 强制创建视图
+create force view v1 as
+select * from test;
+
+-- 查询视图状态
+select object_name,status from user_objects where object_name='V1';
+
+-- 创建test
+create table test(id number);
+insert into test values(1);
+
+-- 查询视图状态
+select object_name,status from user_objects where object_name='V1';
+-- 修改students基表
+alter table students modify(sid number(3))
+
+-- 重新编译
+alter view v1 compile;
+
+-- 查看当前方案所有视图信息
+ select view_name,text from user_views;
+-- 查询当前方案中指定视图(或表)的列名信息
+select * from user_tab_columns where table_name='V1'; 
+
+-- 删除视图
+drop view v1;

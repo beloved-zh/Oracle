@@ -1,0 +1,31 @@
+-- 查看用户是否有create sequence权限
+select * from session_privs;
+
+-- 创建升序序列
+create sequence seq1
+start with 1
+increment by 1;
+
+-- 创建降序序列
+create sequence seq2
+start with -1
+increment by -1;
+
+-- currval当前序列值，nextval下一个序列值
+select seq1.currval,seq1.nextval from dual;
+
+-- 序列的应用
+insert into students values(seq1.nextval,'李四',22,to_date('2005-02-03','yyyy-mm-dd'),'123456789');
+
+-- 修改序列步长为3最大值10不循环
+alter sequence seq1 increment by 3 maxvalue 10 nocycle;
+
+-- 查询当前用户拥有的序列
+select object_name,object_type from user_objects;
+
+-- 查询序列的设置
+select * from user_sequences;
+
+-- 删除序列
+drop sequence seq1;
+drop sequence seq2;
