@@ -2152,5 +2152,179 @@ View dropped
 
 ==**参考文档：https://www.cnblogs.com/cxdanger/p/9914307.html**==
 
+# 15、索引
 
+- 索引是与表相关的一个可选结构
+- 用以提高 SQL 语句执行的性能
+- 减少磁盘I/O
+- 使用 CREATE INDEX 语句创建索引
+- 在逻辑上和物理上都独立于表的数据
+- Oracle 自动维护索引
+
+## 15.1、索引的分类
+
+- BTree索引
+  - B*树索引的存储结构类似书的索引结构，有分支和叶两种类型的存储数据块，分支块相当于书的大目录，叶块相当于索引到的具体的书页。Oracle用B*树机制存储索引条目，以保证用最短路径访问键值。默认情况下大多使用B*树索引，该索引就是通常所见的唯一索引、逆序索引等。
+- 位图索引
+  - 位图索引存储主要用于节省空间，减少oracle对数据块的访问。它采用位图偏移方式来与表的行ID号对应，采用位图索引一般是重复值太多的表字段。位图索引之所以在实际密集型OLTP（联机事物处理）中用的比较少，是因为OLTP会对表进行大量的删除、修改、新建操作。Oracle每次进行操作都会对要操作的数据块加锁。以防止多人操作容易产生的数据库锁等待甚至死锁现象。在OLAP（联机分析处理）中应用位图有优势，因为OLAP中大部分是对数据库的查询操作，而且一般采用数据仓库技术，所以大量数据采用位图索引节省空间比较明显。当创建表的命令中包含有唯一性关键字时，不能创建位图索引，创建全局分区索引时也不能用位图索引。
+
+## 15.2、索引原理
+
+- 若没有索引，搜索某个记录时（例如查找name='wish'）需要搜索所有的记录，因为不能保证只有一个wish，必须全部搜索一遍
+- 若在name上建立索引，oracle会对全表进行一次搜索，将每条记录的name值哪找升序排列，然后构建索引条目（name和rowid），存储到索引段中，查询name为wish时即可直接查找对应地方
+- **创建了索引并不一定就会使用，oracle自动统计表的信息后，决定是否使用索引**，表中数据很少时使用全表扫描速度已经很快，没有必要使用索引
+
+## 15.3、标准索引
+
+**创建**
+
+==语法：create  index   索引名   on   表名 (字段)==
+
+```sql
+SQL> create index i1 on students(sname);
+
+Index created
+```
+
+**删除**
+
+==语法：drop  index   索引名==
+
+```sql
+SQL> drop index i1;
+
+Index dropped
+```
+
+## 15.4、唯一索引
+
+- 唯一索引确保在定义索引的列中没有重复值
+- Oracle自动在表的主键列上创建唯一索引
+- 使用CREATE UNIQUE INDEX语句创建唯一索引
+
+==语法：create  unique  index   索引名   on   表名 (字段)==
+
+```sql
+SQL> create unique index i1 on students(sname);
+
+Index created
+```
+
+## 15.5、组合索引
+
+- 组合索引是在表的多个列上创建的索引
+- 索引中列的顺序是任意的
+- 如果 SQL 语句的 WHERE 子句中引用了组合索引的所有列或大多数列，则可以提高检索速度
+
+==语法：create  index   索引名   on   表名 (字段列表)==
+
+```sql
+SQL> create index i1 on students(sid,sname);
+
+Index created
+```
+
+## 15.6、反向键索引
+
+- 反向键索引反转索引列键值的每个字节
+- 通常建立在值是连续增长的列上，使数据均匀地分布在整个索引上
+- 创建索引时使用REVERSE关键字
+
+==索引是存在硬盘上，如果数据的修改导致数据的顺序要修改（如删除一条数据），系统会锁定一大块索引数据。==
+
+==语法：create  index   索引名   on   表名 (字段)  reverse==
+
+```sql
+SQL> create index i1 on students(sname) reverse;
+
+Index created
+```
+
+## 15.7、位图索引
+
+- 位图索引适合创建在低基数列上
+- 位图索引不直接存储ROWID，而是存储字节位到ROWID的映射
+- 减少响应时间
+- 节省空间占用
+
+==Oracle企业版才有添加位图索引的功能==
+
+==语法：create bitmap index 索引名   on   表名 (字段)==
+
+```sql
+SQL> create bitmap index i1  on students(sid);
+create bitmap index i1  on students(sid)
+
+ORA-00439: 未启用功能: Bit-mapped indexes
+```
+
+## 15.8、基于函数的索引
+
+- 基于一个或多个列上的函数或表达式创建的索引
+- 表达式中不能出现聚合函数
+- 不能在LOB类型的列上创建
+- 创建时必须具有 QUERY REWRITE 权限
+
+==语法：create index i 索引名   on   表名 (函数(字段))==
+
+```sql
+SQL> create index i1 on students(sum(age));
+create index i1 on students(lower(age))
+
+ORA-00934: 此处不允许使用分组函数
+
+SQL> create index i1 on students(lower(age));
+
+Index created
+```
+
+## 15.9、索引组织表
+
+-  索引组织表的数据是根据主键排**不仅可以存储数据，还可以存储为表建立的索引**序后的顺序进行排列的，这样就提高了访问的速度。
+- 但是这是由牺牲插入和更新性能为代价的(每次写入和更新后都要重新进行重新排序)。 
+- 适合数据不会改变的情况使用（如软件说明书）
+- **针对查询比较频繁，数据存储不多的表可以采用，**比如数据字典、参数表等
+
+```sql
+SQL> CREATE TABLE ind_org_tab (
+       vencode NUMBER(4) PRIMARY KEY,
+       venname VARCHAR2(20)
+     ) 
+ORGANIZATION INDEX;
+```
+
+## 15.10、分区表索引
+
+- 表的数据存储在不同的分区上，可以创建分区表的索引，可以分为本地的和全局的
+- 分区表本地索引语法
+  - Create index 索引名 on 表名(列名) local
+- 分区表全局索引
+  - Create index 索引名 on 表名(列名)global
+
+## 15.11、索引中的分区
+
+- 索引对象也会占用存储空间，可以将索引存储在不同的分区中
+
+- 与分区有关的索引有三种类型：
+  - 局部分区索引 － 在分区表上创建的索引，在每个表分区上创建独立的索引，索引的分区范围与表一致
+  - 全局分区索引 － 在分区表或非分区表上创建的索引，索引单独指定分区的范围，与表的分区范围或是否分区无关
+  - 全局非分区索引 － 在分区表上创建的全局普通索引，索引没有被分区
+
+```sql
+Create index 索引名 on 表名(列名)global
+Partition by range(列名)(
+Partition a values less then(1500),
+Partition a values less then(maxvalue)
+);
+```
+
+## 15.12、总结
+
+- 使用索引原则：
+  1. 在大表上建立索引才有意义
+  2. 在where字句或是连接条件上经常引用的列上建立索引
+  3. 索引的层次不要超过4层。
+- 索引的不足：
+  1. 占磁盘空间
+  2. 更新时消耗时间
 
