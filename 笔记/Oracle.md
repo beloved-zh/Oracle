@@ -2328,3 +2328,611 @@ Partition a values less then(maxvalue)
   1. 占磁盘空间
   2. 更新时消耗时间
 
+# 16、PL/SQL
+
+## 16.1、简介
+
+SQL语言只是访问、操作数据库的语言，并不是一种具有**流程控制**的程序设计语言，而只有程序设计语言才能用于应用软件的开发。**PL/SQL 是对 SQL 的扩展** 。PL /SQL是一种高级数据库程序设计语言，该语言**专门用于在各种环境下对ORACLE数据库进行访问**。由于改语言集成于数据库服务器中，所以PL/SQL代码可以对数据进行快速高效的处理。除此之外，可以在Oracle数据库的某些客户端工具中使用PL/SQL语言也是该语言的一个特点
+
+在PL/SQL中可以使用的SQL语句有：insert，update，delete，select .... into，commit，rollback，savepnint
+
+**在PL/SQL中只能使用SQL中的DML操作，不能使用DDL操作。如（create table），只能使用动态方式**
+
+## 16.2、优点
+
+- 支持 SQL，在 PL/SQL 中可以使用：
+  - 数据操纵命令
+  - 事务控制命令
+  - 游标控制
+  - SQL 函数和 SQL 运算符
+  - 完全支持SQL数据类型
+
+- 支持面向对象编程 (OOP) 
+
+- 可移植性，可运行在任何操作系统和平台上的Oralce 数据库
+
+- 更佳的性能
+
+## 16.3、PL/SQL块
+
+- PL/SQL 块是构成 PL/SQL 程序的基本单元
+
+- PL/SQL块 分为三个部分，声明部分、可执行部分和异常处理部分
+
+```sql
+DECLARE   
+  --声明部分: 在此声明PL/SQL用到的变量,类型及游标，以及局部的存储过程和函数 
+BEGIN 
+  -- 执行部分:  过程及SQL 语句  , 即程序的主要部分 
+EXCEPTION 
+  -- 执行异常部分: 错误处理 
+END;
+```
+
+```sql
+-- 控制台输出命令
+SQL> set serveroutput on
+SQL> 
+SQL> begin
+  2    dbms_output.put_line('hello PL/SQL');
+  3  end;
+  4  /   -- /表示代码块结束
+hello PL/SQL
+
+PL/SQL procedure successfully completed
+```
+
+**注意**
+
+- 执行部分不能省略。
+- 在控制台输出，需要开启==set serveroutput on==
+- 代码块结束使用==/==表示结束
+
+## 16.4、数据类型
+
+### 16.4.1、基本数据类型
+
+![image-20200225102855581](F:\Typora\image-20200225102855581.png)
+
+### 16.4.2、属性类型
+
+- 用于引用数据库列的数据类型，以及表示表中一行的记录类型
+
+- 属性类型有两种：
+  - %TYPE - 引用变量和数据库列的数据类型
+  - %ROWTYPE - 提供表示表中一行的记录类型
+
+- 使用属性类型的优点：
+  - 不需要知道被引用的表列的具体类型
+  - 如果被引用对象的数据类型发生改变，PL/SQL 变量的数据类型也随之改变
+
+```sql
+v_sal emp.sal%TYPE;
+v_row emp%ROWTYPE;
+```
+
+### 16.4.3、变量和常量
+
+- PL/SQL 块中可以使用变量和常量
+  - 在声明部分声明，使用前必须先声明
+  - 声明时必须指定数据类型，每行声明一个标识符
+  - 在可执行部分的 SQL 语句和过程语句中使用
+
+- 声明变量和常量的语法：
+
+  ```sql
+  variable_name [CONSTANT] datatype [NOT NULL] [:= | DEFAULT initial_value]
+  ```
+
+  - `variable_name` - 分配给变量的名称。
+  - `CONSTANT` - 可选的。 如果指定，变量的值是恒定的，不能被更改。
+  - `datatype` - 要分配给变量的数据类型。
+
+- 给变量赋值有两种方法：
+
+  - 使用赋值语句 :=
+
+  - 使用 SELECT INTO 语句
+
+### 16.4.4、练习
+
+#### 16.4.4.1、:=赋值
+
+```sql
+-- 声明变量
+SQL> declare
+  2  pi number(5,4) := 3.14;
+  3  begin
+  4    pi := 3.1415;  -- 可以改变
+  5    dbms_output.put_line(pi);
+  6  end;
+  7  /
+
+3.1415
+
+PL/SQL procedure successfully completed
+
+
+-- 声明常量 constant
+SQL> declare
+  2  pi constant number(5,4) := 3.14;
+  3  begin
+  4    pi := 3.1415; -- 不可以改变，报错
+  5    dbms_output.put_line(pi);
+  6  end;
+  7  /
+declare
+pi constant number(5,4) := 3.14;
+begin
+  pi := 3.1415;
+  dbms_output.put_line(pi);
+end;
+
+ORA-06550: 第 4 行, 第 3 列: 
+PLS-00363: 表达式 'PI' 不能用作赋值目标
+ORA-06550: 第 4 行, 第 3 列: 
+PL/SQL: Statement ignored
+```
+
+#### 16.4.4.2、select into赋值
+
+```sql
+-- select into 赋值
+SQL> declare
+  2  age number(3);
+  3  begin
+  4    select s.age into age from students s where s.sid = 1;
+  5    dbms_output.put_line(age);
+  6  end;
+  7  /
+20
+PL/SQL procedure successfully completed
+```
+
+#### 16.4.4.3、%type
+
+**根据表中的一列的类型定义一个变量**
+
+```sql
+SQL> -- %type
+SQL> declare
+  2  sname students.sname%type;
+  3  begin
+  4    select s.sname into sname from students s where s.sid = 1;
+  5    dbms_output.put_line(sname);
+  6  end;
+  7  /
+张三
+
+PL/SQL procedure successfully completed
+
+```
+
+#### 16.4.4.4、%rowtype
+
+**根据表中的一行的类型定义一个变量**
+
+```sql
+SQL> -- %rowtype  根据表中的一行的类型定义一个变量
+SQL> declare
+  2  s_row students%rowtype;
+  3  begin
+  4    select * into s_row from students s where s.sid = 1;
+  	   -- 这个一行。输出必须指定这一行中的字段
+  5    dbms_output.put_line(s_row);
+  6  end;
+  7  /
+
+ORA-06550: 第 5 行, 第 3 列: 
+PLS-00306: 调用 'PUT_LINE' 时参数个数或类型错误
+ORA-06550: 第 5 行, 第 3 列: 
+PL/SQL: Statement ignored
+
+SQL> 
+SQL> -- %rowtype  根据表中的一行的类型定义一个变量
+SQL> declare
+  2  s_row students%rowtype;
+  3  begin
+  4    select * into s_row from students s where s.sid = 1;
+  5    dbms_output.put_line(s_row.sname);
+  6  end;
+  7  /
+张三
+
+PL/SQL procedure successfully completed
+```
+
+## 16.5、控制结构
+
+**PL/SQL 支持的流程控制结构：**
+
+- 条件控制
+  - IF 语句
+  - CASE 语句
+
+- 循环控制
+  - LOOP 循环
+  - WHILE 循环
+  - FOR 循环
+
+- 顺序控制
+  - GOTO 语句
+  - NULL 语句
+
+### 16.5.1、条件控制
+
+#### 16.5.1.1、if语句
+
+**IF 语句根据条件执行一系列语句，有三种形式：if-THEN、IF-THEN-ELSE 和 IF-THEN-ELSIF**
+
+```sql
+语法： IF  条件表达式  THEN
+      	 	执行语句
+ 	  END IF;
+或者
+ 	  IF  条件表达式  THEN
+			执行语句
+	  ELSIF 条件表达式 THEN
+			执行语句
+	  ELSE
+			执行语句
+	  END IF;
+```
+
+```sql
+SQL> -- if
+SQL> declare
+  2  age int := 5;
+  3  begin
+  4    if age = 0 then
+  5      dbms_output.put_line('男');
+  6    elsif age = 1 then
+  7      dbms_output.put_line('女');
+  8    else
+  9      dbms_output.put_line('不能识别');
+ 10    end if;
+ 11  end;
+ 12  /
+不能识别
+
+PL/SQL procedure successfully completed
+```
+
+#### 16.5.1.2、case语句
+
+- **CASE 语句用于根据单个变量或表达式与多个值进行比较**
+- **执行 CASE 语句前，先计算选择器的值**
+
+```sql
+语法： case  字符串变量
+          when  结果值1   THEN  执行语句；
+          when  结果值2   THEN  执行语句；
+          。。。
+	      else 执行语句；
+	  end  case;
+或者
+      case  
+          when  条件表达式1   THEN  执行语句；
+          when  条件表达式2   THEN  执行语句；
+          。。。
+		  else 执行语句；
+	  end  case;
+```
+
+```sql
+SQL> -- case01
+SQL> declare
+  2  age int := 0;
+  3  begin
+  4    case age
+  5      when 0 then
+  6        dbms_output.put_line('男');
+  7      when 2 then
+  8        dbms_output.put_line('女');
+  9      else
+ 10        dbms_output.put_line('不能识别');
+ 11    end case;
+ 12  end;
+ 13  /
+男
+
+PL/SQL procedure successfully completed
+
+-------------------------------------------------------------------------------------
+
+SQL> 
+SQL> -- case02
+SQL> declare
+  2  score int := 80;
+  3  begin
+  4    case
+  5      when score >= 90 then
+  6        dbms_output.put_line('优');
+  7      when score >= 60 then
+  8        dbms_output.put_line('良');
+  9      when score > 0 then
+ 10        dbms_output.put_line('差');
+ 11      else
+ 12        dbms_output.put_line('输入错误');
+ 13    end case;
+ 14  end;
+ 15  /
+良
+
+PL/SQL procedure successfully completed
+```
+
+### 16.5.2、循环控制
+
+- 循环控制用于重复执行一系列语
+
+- 循环控制的三种类型：
+  - LOOP  -  无条件循环
+  - WHILE - 根据条件循环
+  - FOR - 循环固定的次数
+
+==无论是使用for还是while循环，都是以loop循环作为基础==
+
+#### 16.5.2.1、loop
+
+==表达式：循环结束条件==
+
+```sql
+LOOP
+     EXIT WHEN 条件表达式;
+     执行语句
+END  LOOP;
+```
+
+```sql
+SQL> -- loop
+SQL> declare
+  2  i int := 0;
+  3  begin
+  4    loop
+  5      exit when i > 10;
+  6      dbms_output.put_line(i);
+  7      i := i+1;
+  8    end loop;
+  9  end;
+ 10  /
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+
+PL/SQL procedure successfully completed
+```
+
+#### 16.5.2.2、while
+
+==表达式：循环条件==
+
+```sql
+While  表达式
+LOOP
+     执行语句
+END  LOOP;
+```
+
+```sql
+SQL> -- while
+SQL> declare
+  2  i int := 0;
+  3  begin
+  4    while i < 10
+  5      loop
+  6        dbms_output.put_line(i);
+  7        i := i+1;
+  8      end loop;
+  9  end;
+ 10  /
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+
+PL/SQL procedure successfully completed
+```
+
+#### 16.5.2.3、for
+
+```sql
+For   变量 in 起始值..结束值
+LOOP
+     执行语句
+END  LOOP;
+```
+
+```sql
+SQL> -- for
+SQL> begin
+  2    for i in 1..10
+  3      loop
+  4        dbms_output.put_line(i);
+  5      end loop;
+  6  end;
+  7  /
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+
+PL/SQL procedure successfully completed
+```
+
+### 16.5.3、跳转控制
+
+- 有的业务逻辑只用顺序、分支和循环控制可能效率很低，如果引入跳转控制可以极大的提高程序效率。
+  - GOTO 语句 - 无条件地转到标签指定的语句
+  - NULL 语句 - 什么也不做的空语句
+
+==节点之后要加return或null==
+
+```sql
+SQL> -- 跳转结构
+SQL> declare
+  2  i int := 2;
+  3  begin
+  4    if i = 1 then
+  5      goto a;
+  6    elsif i = 2 then
+  7      goto b;
+  8    else
+  9      goto c;
+ 10    end if;
+ 11    <<a>>
+ 12      dbms_output.put_line('跳转到a');
+ 13      return;
+ 14    <<b>>
+ 15      dbms_output.put_line('跳转到b');
+ 16      return;
+ 17    <<c>>
+ 18      null;
+ 19  end;
+ 20  /
+跳转到b
+
+PL/SQL procedure successfully completed
+
+
+SQL> 
+SQL> -- 跳转结构
+SQL> declare
+  2  i int := 5;
+  3  begin
+  4    if i = 1 then
+  5      goto a;
+  6    elsif i = 2 then
+  7      goto b;
+  8    else
+  9      goto c;
+ 10    end if;
+ 11    <<a>>
+ 12      dbms_output.put_line('跳转到a');
+ 13      return;
+ 14    <<b>>
+ 15      dbms_output.put_line('跳转到b');
+ 16      return;
+ 17    <<c>>
+ 18      null;
+ 19  end;
+ 20  /
+
+PL/SQL procedure successfully completed
+```
+
+## 16.6、异常
+
+**EXCEPTION**
+
+- 在运行程序时出现的错误叫做异常
+
+- 发生异常后，语句将停止执行，控制权转移到 PL/SQL 块的异常处理部分
+
+- 异常有两种类型：
+  - 预定义异常 - 当 PL/SQL 程序违反 Oracle 规则或超越系统限制时隐式引发
+  - 用户定义异常 - 用户可以在 PL/SQL 块的声明部分定义异常，自定义的异常通过 RAISE 语句显式引发
+
+### 16.6.1、预定义异常
+
+```sql
+SQL> -- 预定义异常
+SQL> declare
+  2    age number(3);
+  3  begin
+  4    select s.age into age from students s;
+  5  exception
+  6    when too_many_rows then
+  7      dbms_output.put_line ('返回多行');
+  8  end;
+  9  /
+返回多行
+
+PL/SQL procedure successfully completed
+```
+
+### 16.6.2、自定义异常
+
+```sql
+SQL> 
+SQL> -- 用户自定义异常
+SQL> -- 1.exc exception;定义异常
+SQL> -- 2.raise exc;抛出异常
+SQL> -- 3.when exc then捕获异常
+SQL> declare
+  2    exc exception;
+  3    v_a int:=1;
+  4  begin
+  5       if v_a<3 then
+  6           raise exc;
+  7       else
+  8            dbms_output.put_line('v_a大于于等于3');
+  9       end if;
+ 10     exception
+ 11         when exc then
+ 12            dbms_output.put_line('出问题那');
+ 13  end;
+ 14  /
+出问题那
+
+PL/SQL procedure successfully completed
+
+```
+
+## 16.7、动态SQL
+
+- 动态 SQL ：在PL/SQL把直接执行字符串的操作称为动态sql
+
+- 编译程序对动态 SQL 不做处理，而是在程序运行时动态构造语句、对语句进行语法分析并执行
+
+- DDL 语句命令和会话控制语句不能在 PL/SQL 中直接使用，但是可以通过动态 SQL 来执行
+
+- 执行动态 SQL 的语法：
+
+```sql
+EXECUTE IMMEDIATE dynamic_sql_string
+
+[INTO define_variable_list]
+
+[USING bind_argument_list];
+```
+
+**执行DDL操作**
+
+```sql
+SQL> begin
+  2      execute immediate 'create table ccc(aa int)';
+  3  end;
+  4  /
+
+PL/SQL procedure successfully completed
+
+
+SQL> select * from ccc;
+
+                                     AA
+---------------------------------------
+```
+
+
+
