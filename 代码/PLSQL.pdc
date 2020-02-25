@@ -1,0 +1,209 @@
+-- 控制台输出命令
+set serveroutput on
+
+begin
+  dbms_output.put_line('Hello PL/SQL');
+end;
+/
+
+-- 声明变量
+declare
+pi number(5,4) := 3.14;
+begin
+  pi := 3.1415;
+  dbms_output.put_line(pi);
+end;
+/
+
+-- 声明常量
+declare
+pi constant number(5,4) := 3.14;
+begin
+  pi := 3.1415;
+  dbms_output.put_line(pi);
+end;
+/
+
+-- select into 赋值
+declare
+age number(3);
+begin
+  select s.age into age from students s where s.sid = 1;
+  dbms_output.put_line(age);
+end;
+/
+  
+-- %type  根据表中的一列的类型定义一个变量
+declare
+sname students.sname%type;
+begin 
+  select s.sname into sname from students s where s.sid = 1;
+  dbms_output.put_line(sname);
+end;
+/
+
+-- %rowtype  根据表中的一行的类型定义一个变量
+declare
+s_row students%rowtype;
+begin 
+  select * into s_row from students s where s.sid = 1;
+  dbms_output.put_line(s_row.sname);
+end;
+/
+
+-- if
+declare
+age int := 5;
+begin
+  if age = 0 then
+    dbms_output.put_line('男');
+  elsif age = 1 then
+    dbms_output.put_line('女');
+  else
+    dbms_output.put_line('不能识别');
+  end if;
+end;
+/
+
+-- case01
+declare
+age int := 0;
+begin 
+  case age
+    when 0 then
+      dbms_output.put_line('男');
+    when 2 then
+      dbms_output.put_line('女');
+    else
+      dbms_output.put_line('不能识别');
+  end case;
+end;
+/
+
+-- case02
+declare
+score int := 80;
+begin
+  case
+    when score >= 90 then
+      dbms_output.put_line('优');
+    when score >= 60 then
+      dbms_output.put_line('良');
+    when score > 0 then
+      dbms_output.put_line('差');
+    else
+      dbms_output.put_line('输入错误');
+  end case;
+end;
+/
+  
+-- loop
+declare
+i int := 0;
+begin
+  loop 
+    exit when i > 10;
+    dbms_output.put_line(i);
+    i := i+1;
+  end loop;
+end;
+/ 
+
+-- while
+declare
+i int := 0;
+begin
+  while i < 10
+    loop
+      dbms_output.put_line(i);
+      i := i+1;
+    end loop;
+end;
+/ 
+
+-- for
+begin
+  for i in 1..10
+    loop
+      dbms_output.put_line(i);
+    end loop;
+end;
+/ 
+
+-- 跳转结构
+declare
+i int := 5;
+begin
+  if i = 1 then
+    goto a;
+  elsif i = 2 then
+    goto b;
+  else
+    goto c;
+  end if;
+  <<a>>
+    dbms_output.put_line('跳转到a');
+    return;
+  <<b>>
+    dbms_output.put_line('跳转到b');
+    return;
+  <<c>>
+    null;
+end;
+/
+      
+-- 预定义异常
+declare 
+  age number(3);
+begin
+  select s.age into age from students s;
+exception 
+  when too_many_rows then
+    dbms_output.put_line ('返回多行');
+end;
+/
+ 
+-- 用户自定义异常
+-- 1.exc exception;定义异常
+-- 2.raise exc;抛出异常
+-- 3.when exc then捕获异常
+declare
+  exc exception; 
+  v_a int:=1;
+begin
+     if v_a<3 then
+         raise exc;
+     else
+          dbms_output.put_line('v_a大于于等于3');
+     end if;
+   exception 
+       when exc then
+          dbms_output.put_line('出问题那');
+end;
+/
+
+--动态sql执行DDL操作
+begin
+    execute immediate 'create table ccc(aa int)';
+end;
+/
+
+--动态sql
+declare
+v_sql varchar2(500);
+s_id number(10) := 4;
+sname varchar2(10) := '张恒';
+age int := 30;
+begin
+    v_sql := 'execute immediate insert into students values(:1,:2,:3)';
+    using s_id,sname,age;
+end;
+/
+      
+    
+declare
+names varchar2(10) := '张三';
+begin
+  dbms_output.put_line(names);
+end;
+  
