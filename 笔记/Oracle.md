@@ -778,7 +778,7 @@ SQL>
 
 ## 10.1、介绍
 
-**Oracle中SCOTT用户下 emp、dept、bonus、salgrade表**
+**Oracle中SCOTT用户密码tiger下 emp、dept、bonus、salgrade表**
 
 源码：D:\tool\Oracle\oraclexe\app\oracle\product\11.2.0\server\rdbms\admin\utlsampl.sql
 
@@ -2403,8 +2403,8 @@ PL/SQL procedure successfully completed
   - %ROWTYPE - 提供表示表中一行的记录类型
 
 - 使用属性类型的优点：
-  - 不需要知道被引用的表列的具体类型
-  - 如果被引用对象的数据类型发生改变，PL/SQL 变量的数据类型也随之改变
+  - **不需要知道被引用的表列的具体类型**
+  - **如果被引用对象的数据类型发生改变，PL/SQL 变量的数据类型也随之改变**
 
 ```sql
 v_sal emp.sal%TYPE;
@@ -2934,5 +2934,330 @@ SQL> select * from ccc;
 ---------------------------------------
 ```
 
+# 17、存储过程与存储函数
 
+**区别**：是否可以通过return返回函数值。存储函数可以通过return返回函数值，而存储过程不可以。
+
+**相同点**：保存一段可执行的SQL语句，方便开发调用
+
+**优点**
+
+1. 效率高
+   - 存储过程编译一次后，就会存到数据库，每次调用时都直接执行。而普通的sql语句我们要保存到其他地方（例如：记事本  上），都要先分析编译才会执行。所以想对而言存储过程效率更高。
+2. 降低网络流量
+   - 存储过程编译好会放在数据库，我们在远程调用时，不会传输大量的字符串类型的sql语句。
+3. 复用性高
+   - 存储过程往往是针对一个特定的功能编写的，当再需要完成这个特定的功能时，可以再次调用该存储过程。
+4. 可维护性高
+   - 当功能要求发生小的变化时，修改之前的存储过程比较容易，花费精力少。
+5. 安全性高
+   - 完成某个特定功能的存储过程一般只有特定的用户可以使用，具有使用身份限制，更安全。
+
+## 存储过程
+
+### 17.1、创建
+
+**语法**
+
+```sql
+create [or replace] procedure 过程名(参数名 in/out 类型)
+as
+变量定义
+begin
+end;
+```
+
+==其中参数IN表示输入参数，是参数的默认模式。
+OUT表示返回值参数，类型可以使用任意Oracle中的合法类型。
+OUT模式定义的参数只能在过程体内部赋值，表示该参数可以将某个值传递回调用他的过程
+IN OUT表示该参数可以向该过程中传递值，也可以将某个值传出去==
+
+==in可以忽略，out不可以==
+
+- 存储过程或者存储函数，只能创建或者替换；
+- 参数可以带也可以不带；
+- `as`相当于PLSQL语句中的`declare`，用来声明变量，游标等，但是不可以省略。
+
+- 要说明，参数是输入参数(in)还是输出参数(out)；
+- 为保证调用多个存储过程中处在同一个事务中，所以一般不在存储过程或者存储函数中,commit或rollback；
+
+**练习**
+
+```sql
+-- 定义存储过程 根据id修改指定学生年龄+5，并打印前后的年龄
+create or replace procedure UPDATEAGE(id in number)
+as
+ age number(3);
+begin
+  select s.age into age from students s where s.sid = id;
+  dbms_output.put_line(age);
+  update students set age = age + 5 where sid = id;
+  select s.age into age from students s where s.sid = id;
+  dbms_output.put_line(age);
+end;
+
+-- 调用存储过程
+begin
+  UPDATEAGE(1);
+end;
+
+-- 存储过程out 查询指定学生的年龄
+create or replace procedure PfindAgeById(id number,age out number)
+as
+begin
+  select s.age into age from students s where s.sid = id;
+end;
+
+declare
+age number(3);
+begin 
+  PfindAgeById(1,age);
+  dbms_output.put_line(age);
+end;
+```
+
+==注意==
+
+**存储过程创建后在Procedures文件夹可以看见**
+
+```sql
+create or replace procedure UPDATEAGE(id in number)
+as
+ age number(3);
+begin
+  -- 语法错误
+  selec s.age into age from students s where s.sid = id;
+  dbms_output.put_line(age);
+  update students set age = age + 5 where sid = id;
+  select s.age into age from students s where s.sid = id;
+  dbms_output.put_line(age);
+end;
+```
+
+==存储过程创建过程中，如果出现语法错误，是不会提示。只要在调用的时候才会报错。可以如下图查看==
+
+![image-20200227131734040](F:\Typora\image-20200227131734040.png)
+
+![image-20200227132007232](F:\Typora\image-20200227132007232.png)
+
+### 17.2、查看
+
+==这里的存储名必须为大写==
+
+#### 17.2.1、查看存储过程的脚本
+
+```sql
+-- 查看存储过程的脚本
+select text from user_source where name = 'UPDATEAGE';
+```
+
+![image-20200227134444888](F:\Typora\image-20200227134444888.png)
+
+#### 17.2.2、查看存储过程的状态
+
+```sql
+-- 查看存储过程的状态
+select status from user_objects where object_name = 'UPDATEAGE';
+```
+
+![image-20200227134822868](F:\Typora\image-20200227134822868.png)
+
+**说明：VALID表示该存储过程有效(即通过编译)，INVALID表示存储过程无效或需要重新编译。当Oracle调用一个无效的存储过程或函数时，首先试图对其进行编译，如果编译成功则将状态置成VALID并执行，否则给出错误信息。**
+
+**当一个存储过程编译成功，状态变为VALID，会不会在某些情况下变成INVALID。结论是完全可能的。比如一个存储过程中包含对表的查询，如果表被修改或删除，存储过程就会变成无效INVALID。所以要注意存储过程和函数对其他对象的依赖关系**
+
+### 17.3、删除
+
+==DROP PROCEDURE 存储过程名;==
+
+```sql
+-- 删除存储过程
+drop procedure updateAge;
+```
+
+## 存储函数
+
+- 函数(Function)为一命名的存储程序，可带参数，并返回一计算值；
+- 函数和过程的结构类似，但必须有一个return子句，用于返回函数值。
+
+### 17.1、创建
+
+**语法**
+
+```sql
+create [or replace] function 方法名(参数名 in/out 类型) return 参数类型
+as
+变量名 类型要和return的返回类型一致
+begin
+  return 变量名
+end;
+```
+
+**测试**
+
+```sql
+-- 存储函数 查询指定学生的年龄
+create or replace function findAgeById(id number) return number
+as
+age number(3);
+begin
+  select s.age into age from students s where s.sid = id;
+  return age;
+end;
+
+-- 调用存储函数
+declare
+age number(3);
+begin
+  age := findAgeById(1);
+  dbms_output.put_line(age);
+end;
+```
+
+### 17.2、查看
+
+**查看语法与存储过程一样**
+
+### 17.3、删除
+
+==drop function 函数名==
+
+```sql
+-- 删除
+drop function FINDAGEBYID;
+```
+
+## 总结
+
+- 一般来讲，存储过程和存储函数的区别在于存储函数可以有一个返回值，而存储过程没有返回值；
+- 过程和函数都可以通过out指定一个或多个输出参数。我们可以利用out参数，在过程和函数中实现返回多个值；
+  - 存储过程和存储函数都可以有out参数；
+  - 存储过程和存储函数都可以有多个out参数；
+  - 存储过程可以通过out参数来实现返回值。
+- 什么时候用存储过程/存储函数?
+  - 原则：如果只有一个返回值，用存储函数；否则，就用存储过程。
+
+# 18、触发器(trigger)
+
+**触发器的定义就是说==某个条件成立==的时候，触发器里面所定义的语句就会被==自动的执行==。
+因此触发器==不需要人为的去调用，也不能调用。==**
+
+## 18.1、创建
+
+**语法**
+
+```sql
+create [or replace] trigger 触发器名
+before\after
+insert\update\delete
+on 表名
+for each row -- :new   :old
+begin
+end;
+```
+
+**说明**
+
+`before`：执行之前
+
+`after`：执行之后
+
+`insert` `update` `delete`：触发操作
+
+`for each row`：行级触发器
+
+`old` ：代表变更前记录
+
+`new`：代表变更后的记录
+
+==:new  :old这两个变量只有在使用了关键字 "for each row"时才存在.且update语句两个都有,而insert只有:new ,delect 只有:old==
+
+**练习一**
+
+```sql
+-- 插入一条数据之后，打印‘有一条数据被插入’
+create or replace trigger t1
+after
+insert
+on students
+begin
+  dbms_output.put_line('有一条数据被插入');
+end;
+
+SQL> insert into students values(4,'admin',20);
+
+有一条数据被插入
+
+1 row inserted
+```
+
+**练习二：insert**
+
+```sql
+-- 插入一条数据之前，打印新插入的年龄
+create or replace trigger t2
+before
+insert
+on students
+for each row
+begin
+  dbms_output.put_line(:new.age);
+end;
+
+SQL> insert into students values(4,'admin',20);
+
+20
+有一条数据被插入
+
+1 row inserted
+```
+
+**练习三：update**
+
+```sql
+-- 修改一条数据之前，打印新旧数据
+create or replace trigger t3
+before
+update
+on students
+for each row
+begin
+  dbms_output.put_line(:old.age);
+  dbms_output.put_line(:new.age);
+end;
+
+SQL> update students set age = 25 where sid = 4;
+
+20
+25
+1 row updated
+```
+
+**练习四：delete**
+
+```sql
+-- 删除一条数据之后，打印旧数据
+create or replace trigger t4
+after
+delete
+on students
+for each row
+begin
+  dbms_output.put_line(:old.age);
+end;
+
+SQL> delete from students where sid = 4;
+
+25
+
+1 row deleted
+```
+
+## 18.2、删除
+
+==drop trigger  触发器名;==
+
+```sql
+drop trigger t4;
+```
 

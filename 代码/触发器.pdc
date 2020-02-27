@@ -1,0 +1,48 @@
+-- 控制台输出命令
+set serveroutput on
+
+-- 插入一条数据之后，打印‘有一条数据被插入’
+create or replace trigger t1
+after
+insert
+on students
+begin
+  dbms_output.put_line('有一条数据被插入');
+end;
+
+insert into students values(4,'admin',20);
+
+-- 插入一条数据之前，打印新插入的年龄
+create or replace trigger t2
+before
+insert
+on students
+for each row
+begin
+  dbms_output.put_line(:new.age);
+end;
+
+-- 修改一条数据之前，打印新旧数据
+create or replace trigger t3
+before
+update
+on students
+for each row
+begin
+  dbms_output.put_line(:old.age);
+  dbms_output.put_line(:new.age);
+end;
+
+update students set age = 25 where sid = 4;
+
+-- 删除一条数据之后，打印旧数据
+create or replace trigger t4
+after
+delete
+on students
+for each row
+begin
+  dbms_output.put_line(:old.age);
+end;
+
+drop trigger t4;

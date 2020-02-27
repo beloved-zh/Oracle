@@ -1,0 +1,125 @@
+/*一．使用触发器实现订单-库存数量的自动更新。
+①　添加订单时候，库存数量自动减少
+②　删除订单时候，库存数量自动恢复
+③　修改订单时候，库存数量自动更新
+备注：订单信息表OrderInfo 库存信息表StoreInfo。
+*/
+-- 创建StoreInfo
+create table StoreInfo(
+sid number(2) primary key,
+sname varchar2(20) not null,
+stock number(2) not null
+);
+
+insert into StoreInfo values(1,'小米8',20);
+insert into StoreInfo values(2,'小米9',10);
+insert into StoreInfo values(3,'小米10',15);
+
+-- 创建OrderInfo
+create table OrderInfo(
+oid number(2) primary key,
+sid number(2) references StoreInfo(sid),
+amount number(2) not null
+);
+
+insert into OrderInfo values(1,1,2);
+insert into OrderInfo values(2,2,1);
+insert into OrderInfo values(3,3,5);
+
+-- ①　添加订单时候，库存数量自动减少
+create or replace trigger t1
+after
+insert
+on OrderInfo
+for each row
+begin
+  update StoreInfo set stock = stock - :new.amount where sid = :new.sid;
+end;
+/
+-- 查询StoreInfo
+select * from StoreInfo where sid = 1;
+-- 测试添加
+insert into OrderInfo values(4,1,2);
+
+-- ②　删除订单时候，库存数量自动恢复
+create or replace trigger t2
+after
+delete
+on OrderInfo
+for each row
+begin
+  update StoreInfo set stock = stock + :old.amount where sid = :old.sid;
+end;
+/
+-- 查询StoreInfo
+select * from StoreInfo where sid = 1;
+-- 删除测试
+delete from OrderInfo where oid = 4;
+
+-- ③　修改订单时候，库存数量自动更新
+create or replace trigger t3
+after
+update
+on OrderInfo
+for each row
+declare 
+n number(2);
+begin
+  if :new.amount > :old.amount then 
+    n := :new.amount - :old.amount;
+    update StoreInfo set stock = stock - n where sid = :new.sid;
+  else 
+    n := :old.amount - :new.amount;
+    update StoreInfo set stock = stock + n where sid = :new.sid;
+  end if;
+end;
+/
+-- 查询
+select * from OrderInfo;
+select * from StoreInfo;
+-- 修改测试
+update OrderInfo set amount = 1 where oid = 2;
+
+
+/*
+二．使用存储过程打印输出指定部门名称，
+对应部门的平均工资，以及平均工资等级。
+备注：使用系统自带的3张表。
+*/
+-- 切换scott用户
+conn scott/tiger;
+
+-- SQL语句
+-- 1.查询出所有部门的平均工资
+select deptno ,avg(sal) avgsal from emp group by deptno
+-- 2.查询出平均工资的等级
+select e.*,s.grade from salgrade s,(select deptno ,avg(sal) avgsal from emp group by deptno) e where e.avgsal > s.losal and e.avgsal < s.hisal
+-- 3.指定部门名称查询
+select d.dname,a.avgsal,a.grade
+from dept d,(select e.*,s.grade from salgrade s,(select deptno ,avg(sal) avgsal from emp group by deptno) e where e.avgsal > s.losal and e.avgsal < s.hisal) a
+where d.deptno = a.deptno and d.deptno = 10;
+
+
+-- 控制台输出命令
+set serveroutput on
+-- 创建存储过程
+create or replace procedure find(deptno in number)
+as
+dname varchar(20);
+avgsal number(10,5);
+grade int;
+begin
+  select d.dname,a.avgsal,a.grade into dname,avgsal,grade
+  from dept d,(select e.*,s.grade from salgrade s,(select deptno ,avg(sal) avgsal from emp group by deptno) e where e.avgsal > s.losal and e.avgsal < s.hisal) a
+  where d.deptno = a.deptno and d.deptno = 10;
+  dbms_output.put_line(dname);
+  dbms_output.put_line(avgsal);
+  dbms_output.put_line(grade);
+end;
+/
+
+-- 调用find
+begin
+  find(10);
+end;
+/
